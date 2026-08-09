@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App Sandbox is intentionally DISABLED so the app can reach arbitrary
+	     local filesystem paths, talk to USB devices via libmtp, and open
+	     outbound FTP connections to the phone. This app is personal-use only and
+	     is never distributed or notarized, so this is acceptable. -->
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+</dict>
+</plist>
