@@ -21,10 +21,11 @@ phone's storage in a native window and drag files straight to and from Finder.
 - **Two ways to connect, no setup headaches**
   - **USB (MTP):** plug in, set the phone to *File Transfer / MTP* — no
     Developer Options, no ADB, no drivers.
-  - **Wi‑Fi (FTP):** run any FTP‑server app on the phone and connect over your
-    LAN — no cable, no ADB. FTP is used deliberately: it's the most widely
-    supported phone-side protocol *and* the fastest for bulk transfer (a raw
-    binary data channel with almost no overhead).
+  - **Wi‑Fi (FTP):** run the bundled **[Android companion app](android/)**
+    (or any FTP‑server app) on the phone and connect over your LAN — no cable, no
+    ADB. FTP is used deliberately: it's the most widely supported phone-side
+    protocol *and* the fastest for bulk transfer (a raw binary data channel with
+    almost no overhead).
 - **Finder drag & drop**, both directions.
 - **Transfer queue** with live progress, speed, cancel, and Queue/Parallel modes.
 - **Manage the phone**: browse, sort, delete, make folders, recursive folder upload.
@@ -35,7 +36,8 @@ phone's storage in a native window and drag files straight to and from Finder.
 - macOS 12 (Monterey) or later
 - [Flutter](https://docs.flutter.dev/get-started/install/macos) 3.x (Dart 3.11+)
 - **For USB/MTP:** `brew install libmtp`
-- **For Wi‑Fi:** any FTP‑server app on the phone
+- **For Wi‑Fi:** the bundled [`android/`](android/) companion
+  app (build in Android Studio), or any FTP‑server app on the phone
   (e.g. *WiFi FTP Server*, *primitive ftpd*)
 
 ## 🚀 Build & run
@@ -59,12 +61,20 @@ first launch (right‑click → Open).
 3. Keep the transport toggle on **MTP** — your phone appears in the device list.
 
 ### Wi‑Fi (FTP)
-1. Install and start an FTP‑server app on the phone; note the `IP:port` it shows.
+1. On the phone, install and start an FTP‑server app and note the `IP:port` it
+   shows. The easiest option is the bundled **[AFT Wi‑Fi FTP](android/)**
+   companion app — tap *Grant all-files access*, then *Start server*; its
+   defaults (port `2121`, user `anonymous`, no password) already match the Mac.
 2. Make sure the Mac and phone are on the **same network**.
 3. Click the **Wi‑Fi** button, enter the address (plus username/password if the
    app requires one), and **Connect**.
 
 Then browse the phone and drag files to/from Finder.
+
+> **Ships with a companion server:** this repo includes a small native-Kotlin
+> Android FTP server in [`android/`](android/) so you don't
+> need a third-party app. See its [README](android/README.md) for
+> build and usage details.
 
 ## 🏗️ How it works
 
@@ -78,6 +88,7 @@ active transport and merges both sides' events into one stream.
 | Router / façade | `lib/services/platform_bridge.dart` |
 | USB (MTP) transport | Native Swift + `libmtp` (`macos/Runner/Mtp*.swift`, `MtpBridge.m`) |
 | Wi‑Fi (FTP) transport | Pure Dart, [`ftpconnect`](https://pub.dev/packages/ftpconnect) (`lib/services/wireless_service.dart`) |
+| Phone-side FTP server | Native Kotlin, hand-written FTP engine ([`android/`](android/)) |
 | Mac ↔ app channel | `MethodChannel`/`EventChannel` `app.filebridge/*` |
 
 Both transports implement the same command contract
