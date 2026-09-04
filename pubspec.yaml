@@ -38,6 +38,8 @@ dependencies:
   # State management for the whole app (device state, browser panes, transfer
   # queue). Chosen over Riverpod/ChangeNotifier per project decision.
   flutter_bloc: ^9.0.0
+  desktop_drop: ^0.7.1
+  super_drag_and_drop: ^0.9.1
   ftpconnect: ^2.0.10
 
 dev_dependencies:
