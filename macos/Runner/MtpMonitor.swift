@@ -21,11 +21,18 @@ final class MtpMonitor {
 
     func start() {
         queue.async { [weak self] in
-            guard let self = self, !self.running else { return }
-            self.running = true
-            self.setUpUSBNotifications()
-            self.startPolling()
-            self.refresh(dropHandle: false)
+            guard let self = self else { return }
+            if !self.running {
+                self.running = true
+                self.setUpUSBNotifications()
+                self.startPolling()
+            }
+            // Always force a fresh detect on start(), even if monitoring was
+            // already running: this is what makes switching back to MTP (or a
+            // relaunch) surface an already-connected device immediately instead
+            // of waiting for the next poll.
+            self.emptyStreak = 0
+            self.refresh(dropHandle: true)
         }
     }
 
