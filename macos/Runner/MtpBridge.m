@@ -1,5 +1,6 @@
 #import "MtpBridge.h"
 #import <libmtp.h>
+#import <unistd.h>
 
 /// libmtp progress trampoline: unwrap the Obj-C block from `data` and translate
 /// its BOOL (YES=continue) into libmtp's convention (return non-zero to cancel).
@@ -37,32 +38,40 @@ static int mtp_progress_cb(uint64_t const sent, uint64_t const total, void const
 - (BOOL)openFirstDeviceWithError:(NSError **)error {
     [self closeDevice];
 
-    LIBMTP_raw_device_t *rawdevices = NULL;
-    int numraw = 0;
-    LIBMTP_error_number_t err = LIBMTP_Detect_Raw_Devices(&rawdevices, &numraw);
-    if (err != LIBMTP_ERROR_NONE || numraw < 1) {
-        if (rawdevices) free(rawdevices);
-        if (error) {
-            *error = [self makeError:@"No device found. Plug in the phone and choose "
-                                     @"“File Transfer” on it (swipe down → USB notification)."];
+    // A device that was open in a previous run (or before we switched to the
+    // wireless transport) often needs a moment to relinquish its USB interface,
+    // so a single detect/open right after relaunch or a transport switch can
+    // spuriously fail. Retry a few times before giving up.
+    BOOL sawDevice = NO;
+    for (int attempt = 0; attempt < 4; attempt++) {
+        LIBMTP_raw_device_t *rawdevices = NULL;
+        int numraw = 0;
+        LIBMTP_error_number_t err = LIBMTP_Detect_Raw_Devices(&rawdevices, &numraw);
+        if (err == LIBMTP_ERROR_NONE && numraw >= 1) {
+            sawDevice = YES;
+            LIBMTP_mtpdevice_t *device = LIBMTP_Open_Raw_Device_Uncached(&rawdevices[0]);
+            free(rawdevices);
+            if (device != NULL) {
+                // Populate the storage list so `storages` and free-space work.
+                LIBMTP_Get_Storage(device, LIBMTP_STORAGE_SORTBY_NOTSORTED);
+                _device = device;
+                return YES;
+            }
+        } else if (rawdevices) {
+            free(rawdevices);
         }
-        return NO;
+        // Wait for the interface/session to settle, then try again.
+        usleep(300 * 1000);
     }
 
-    LIBMTP_mtpdevice_t *device = LIBMTP_Open_Raw_Device_Uncached(&rawdevices[0]);
-    free(rawdevices);
-    if (device == NULL) {
-        if (error) {
-            *error = [self makeError:@"Found a device but couldn’t open it. It may be busy — "
-                                     @"quit Android File Transfer if it’s running, or replug the cable."];
-        }
-        return NO;
+    if (error) {
+        *error = sawDevice
+            ? [self makeError:@"Found a device but couldn’t open it. It may be busy — "
+                              @"quit Android File Transfer if it’s running, or replug the cable."]
+            : [self makeError:@"No device found. Plug in the phone and choose "
+                              @"“File Transfer” on it (swipe down → USB notification)."];
     }
-
-    // Populate the storage list so `storages` and free-space work.
-    LIBMTP_Get_Storage(device, LIBMTP_STORAGE_SORTBY_NOTSORTED);
-    _device = device;
-    return YES;
+    return NO;
 }
 
 - (void)closeDevice {
